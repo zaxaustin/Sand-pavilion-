@@ -2,7 +2,9 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { editImage, generateImage } from './services/geminiService';
 import { fileToBase64 } from './utils/fileUtils';
-import { ImageIcon, SparklesIcon, UploadIcon, WandIcon, BlueprintIcon } from './components/icons';
+import { ImageIcon, SparklesIcon, UploadIcon, WandIcon, BlueprintIcon, CubeIcon } from './components/icons';
+
+type BlueprintType = '2d' | '3d';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<'editor' | 'generator'>('editor');
@@ -21,6 +23,7 @@ const App: React.FC = () => {
   // Generator state
   const [blueprintPrompt, setBlueprintPrompt] = useState<string>('');
   const [generatedBlueprint, setGeneratedBlueprint] = useState<string | null>(null);
+  const [blueprintType, setBlueprintType] = useState<BlueprintType>('2d');
 
 
   const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,7 +80,7 @@ const App: React.FC = () => {
     setGeneratedBlueprint(null);
 
     try {
-        const result = await generateImage(blueprintPrompt);
+        const result = await generateImage(blueprintPrompt, blueprintType);
         if (result) {
             setGeneratedBlueprint(`data:image/png;base64,${result}`);
         } else {
@@ -134,6 +137,28 @@ const App: React.FC = () => {
     </button>
   );
 
+  const GeneratorTypeButton: React.FC<{
+    isActive: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+    icon: React.ReactNode;
+  }> = ({ isActive, onClick, children, icon }) => (
+      <button
+        onClick={onClick}
+        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
+          isActive ? 'bg-banana text-gray-900' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+        }`}
+      >
+        {icon}
+        {children}
+      </button>
+  );
+
+
+  const blueprintPlaceholders = {
+    '2d': 'e.g., A hunter-gatherer permaculture village in the Amazon rainforest...',
+    '3d': 'e.g., A simple wooden bookshelf, 3 shelves, 180cm tall, 80cm wide, 30cm deep...'
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 font-sans">
@@ -231,10 +256,23 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-2 bg-gray-800/30 p-6 rounded-xl border border-gray-700 h-fit">
               <h2 className="text-2xl font-semibold mb-4 text-white">1. Describe Blueprint</h2>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-400 mb-2">Generator Type</label>
+                <div className="flex items-center gap-2 bg-gray-800 p-1 rounded-lg">
+                    <GeneratorTypeButton isActive={blueprintType === '2d'} onClick={() => setBlueprintType('2d')} icon={<BlueprintIcon className="w-5 h-5"/>}>
+                      2D Blueprint
+                    </GeneratorTypeButton>
+                    <GeneratorTypeButton isActive={blueprintType === '3d'} onClick={() => setBlueprintType('3d')} icon={<CubeIcon className="w-5 h-5"/>}>
+                      3D Model
+                    </GeneratorTypeButton>
+                </div>
+              </div>
+
               <textarea
                 value={blueprintPrompt}
                 onChange={(e) => setBlueprintPrompt(e.target.value)}
-                placeholder="e.g., A hunter-gatherer permaculture village in the Amazon rainforest..."
+                placeholder={blueprintPlaceholders[blueprintType]}
                 className="w-full h-36 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-banana-dark focus:border-banana-dark transition-colors placeholder-gray-500"
                 aria-label="Blueprint description prompt"
               />
